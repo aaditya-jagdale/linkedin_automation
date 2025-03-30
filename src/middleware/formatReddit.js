@@ -104,7 +104,12 @@ const formatRedditResponse = (req, res, next) => {
       oldJson.call(this, {
         post: postData,
         comments,
-        generatedContent: result.linkedinPost,
+        generatedContent: {
+          combined: result.linkedinPost,
+          hook: result.components.hook,
+          body: result.components.body,
+          conclusion: result.components.conclusion,
+        },
         providedContext: userContext,
       });
     } catch (error) {
