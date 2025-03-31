@@ -181,8 +181,9 @@ export class ContentGenerator {
     }
   }
 
-  async generator(postTitle, postContent, comments, userContext = "") {
+  async generator(postTitle, postContent, comments, userContext = "", useAgent = false) {
     console.log("🎨 Generating LinkedIn post components...");
+    console.log(useAgent ? "🤖 AI Agent mode: ACTIVE (will attempt to improve content)" : "🤖 AI Agent mode: DISABLED (using first generated output)");
 
     // Generate hook once
     const hook = await this.generateHook(postTitle, userContext);
@@ -192,7 +193,7 @@ export class ContentGenerator {
     let currentScore = 0;
     let attempts = 0;
     let improvements = [];
-    const MAX_ATTEMPTS = 3; // Reduced max attempts since we're only improving body
+    const MAX_ATTEMPTS = 5; // Reduced max attempts since we're only improving body
 
     do {
       attempts++;
@@ -212,15 +213,15 @@ export class ContentGenerator {
 
       console.log(`📊 Current body score: ${currentScore}/10`);
 
-      if (currentScore < 9 && attempts < MAX_ATTEMPTS) {
+      if (currentScore < 9 && attempts < MAX_ATTEMPTS && useAgent) {
         console.log("🔄 Improving body based on feedback...");
         console.log("Improvements needed:", improvements);
-        console.log("⏳ Waiting 3 seconds before applying improvements...");
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        console.log("⏳ Waiting 10 seconds before applying improvements...");
+        await new Promise((resolve) => setTimeout(resolve, 10000));
       } else {
         break;
       }
-    } while (currentScore < 9 && attempts < MAX_ATTEMPTS);
+    } while (currentScore < 9 && attempts < MAX_ATTEMPTS && useAgent);
 
     // Generate conclusion once with final body
     const conclusion = await this.generateConclusion(
@@ -255,15 +256,12 @@ export class ContentGenerator {
 
   async filterInterestingTopics(comments) {
     if (!comments?.length) return [];
-
     const interestingTopics = await Promise.all(
       comments.map(async (comment) => {
         try {
           const result = await this.model.generateContent(
-            `
-            Analyze the following comment and extract only the most interesting or thought-provoking parts:
-            ${comment.comment}
-            `
+            `Analyze the following comment and extract only the most interesting or thought-provoking parts:
+            ${comment.comment}`
           );
           const filteredContent = result.response
             .text()
@@ -276,7 +274,6 @@ export class ContentGenerator {
         }
       })
     );
-
     return interestingTopics.filter((topic) => topic && topic.length > 0);
   }
 }
